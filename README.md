@@ -120,6 +120,10 @@ mise run version:cut
 mise run version:push
 ```
 
+Pushing a `YYYY-MM-DD-N` tag triggers GitHub Actions. CI runs the gates, builds
+the release binary, packages `dist/ntlm-bridge-YYYY-MM-DD-N-windows-x64.zip`,
+and publishes it to the GitHub Release for that tag.
+
 For a local test build without creating a tag:
 
 ```powershell
