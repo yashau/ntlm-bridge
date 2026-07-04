@@ -77,6 +77,9 @@ impl ProxyClient {
             .request(req_method, url)
             .header(header::AUTHORIZATION, negotiate);
         copy_request_headers(&mut req, headers, true);
+        if requires_empty_negotiate_body(method) {
+            req = req.header(header::CONTENT_LENGTH, "0").body(Vec::new());
+        }
 
         let resp = req
             .send()
@@ -165,6 +168,10 @@ fn should_skip_request_header(name: &HeaderName, negotiating: bool) -> bool {
     is_hop_by_hop(name)
 }
 
+fn requires_empty_negotiate_body(method: &Method) -> bool {
+    !matches!(method, &Method::GET | &Method::HEAD)
+}
+
 fn is_hop_by_hop(name: &HeaderName) -> bool {
     matches!(
         name.as_str().to_ascii_lowercase().as_str(),
@@ -204,9 +211,9 @@ fn response_from_reqwest(resp: reqwest::Response) -> Result<Response<Body>, Brid
 
 #[cfg(test)]
 mod tests {
-    use axum::http::Uri;
+    use axum::http::{Method, Uri};
 
-    use super::target_url;
+    use super::{requires_empty_negotiate_body, target_url};
 
     #[test]
     fn appends_path_and_query_to_base_url() {
@@ -215,5 +222,15 @@ mod tests {
             target_url("http://example.test/root", &uri).unwrap(),
             "http://example.test/root/one/two?q=1"
         );
+    }
+
+    #[test]
+    fn negotiate_request_uses_empty_body_for_body_methods() {
+        assert!(!requires_empty_negotiate_body(&Method::GET));
+        assert!(!requires_empty_negotiate_body(&Method::HEAD));
+        assert!(requires_empty_negotiate_body(&Method::POST));
+        assert!(requires_empty_negotiate_body(&Method::PUT));
+        assert!(requires_empty_negotiate_body(&Method::PATCH));
+        assert!(requires_empty_negotiate_body(&Method::DELETE));
     }
 }
