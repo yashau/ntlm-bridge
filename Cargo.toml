@@ -1,0 +1,52 @@
+[package]
+name = "ntlm-bridge"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "A thin HTTP Basic/Digest-to-NTLM bridge."
+license = "MIT"
+repository = "https://github.com/yashau/ntlm-bridge"
+readme = "README.md"
+keywords = ["ntlm", "http", "proxy", "basic", "digest"]
+categories = ["authentication", "web-programming::http-server"]
+
+[[bin]]
+name = "ntlm-bridge"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.7", features = ["macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace", "timeout", "limit"] }
+
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
+ntlmclient = "0.2"
+bytes = "1"
+futures-util = "0.3"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+toml = "0.8"
+
+base64 = "0.22"
+hmac = "0.12"
+sha2 = "0.10"
+md5 = "0.7"
+subtle = "2"
+
+anyhow = "1"
+thiserror = "1"
+clap = { version = "4", features = ["derive", "env"] }
+
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-service = "0.7"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+opt-level = 3

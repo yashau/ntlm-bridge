@@ -1,0 +1,93 @@
+[tools]
+rust = ["1.95.0", "nightly"]
+
+[env]
+CARGO_TERM_COLOR = "always"
+
+[tasks.default]
+description = "Run the standard local gate"
+depends = ["gate"]
+
+[tasks.setup]
+description = "Install project toolchains and Rust components"
+run = [
+  "mise install",
+  "rustup component add clippy rustfmt",
+  "rustup +nightly component add miri rust-src",
+]
+
+[tasks.fmt]
+description = "Check Rust formatting"
+run = "cargo fmt --all -- --check"
+
+[tasks."fmt:fix"]
+description = "Format Rust sources"
+run = "cargo fmt --all"
+
+[tasks.check]
+description = "Type-check all targets and features"
+run = "cargo check --all-targets --all-features"
+
+[tasks.clippy]
+description = "Run Clippy with warnings denied"
+run = "cargo clippy --all-targets --all-features -- -D warnings"
+
+[tasks.test]
+description = "Run the normal test suite"
+run = "cargo test --all-targets --all-features"
+
+[tasks.miri]
+description = "Run tests under Miri"
+depends = ["setup"]
+env = { MIRIFLAGS = "-Zmiri-disable-isolation" }
+run = "cargo +nightly miri test"
+
+[tasks.gate]
+description = "Run formatting, check, Clippy, and tests"
+run = [
+  "mise run fmt",
+  "mise run check",
+  "mise run clippy",
+  "mise run test",
+]
+
+[tasks.ci]
+description = "Install dependencies and run the CI gate"
+run = [
+  "mise run setup",
+  "mise run gate",
+]
+
+[tasks."version:show"]
+description = "Show the release tag for HEAD, if present"
+run = "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/calver.ps1 show"
+
+[tasks."version:next"]
+description = "Print the next YYYY-MM-DD-N CalVer tag for today"
+run = "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/calver.ps1 next"
+
+[tasks."version:cut"]
+description = "Create the next YYYY-MM-DD-N annotated release tag for HEAD"
+run = "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/calver.ps1 cut"
+
+[tasks."version:push"]
+description = "Push release tags to origin"
+run = "git push origin --tags"
+
+[tasks."release:validate-tag"]
+description = "Validate that the current release tag is YYYY-MM-DD-N"
+run = "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/calver.ps1 validate"
+
+[tasks."release:build"]
+description = "Build the release binary"
+run = "cargo build --release --locked"
+
+[tasks."release:package"]
+description = "Package release artifacts into dist/"
+depends = ["release:validate-tag", "release:build"]
+run = "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/package-release.ps1"
+
+[tasks."release:publish"]
+description = "Publish dist/ artifacts to the GitHub Release for the current tag"
+depends = ["release:package"]
+run = "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/publish-release.ps1"
